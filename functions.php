@@ -27,7 +27,7 @@ function _img_url($src,$placeholder = false){
     echo img_url($src,$placeholder);
 }
 
-function _eimg($src,$class = '',$attributes = '',$placeholder = false){
+function _eimg($src,$class = '',$attributes = array(),$placeholder = false){
     echo img($src,$class,$attributes,$placeholder);
 }
 
@@ -66,7 +66,7 @@ function generate_site_menu_html($menus,$is_child = false){
     
     
     if(!$is_child){
-        $html_menu = '<ul class="nav navbar-nav navbar-right underline">';    
+        $html_menu = '<ul class="nav navbar-nav underline">';    
     } else {
         $html_menu = '<ul class="dropdown-menu">';
     }
@@ -238,9 +238,11 @@ function flaticon($id){
     return icon($id);
 }
 
-function img($src = '',$class = '', $attributes = '', $placeholder = false ) {
+function img($src = '',$class = '', $attributes = array(), $placeholder = false ) {
     if ( ! is_array($src) ) { $src = array('src' => $src);}
-    if ( ! isset($attributes['alt'])) { $attributes['alt'] = ''; }
+    if ( ! isset($attributes['alt'])) { 
+        $attributes['alt'] = ''; 
+    }
     
     if( ! isset($attributes['class'])){$attributes['class'] = $class;}
     
@@ -281,7 +283,7 @@ function _parse_str($string, &$array) {
     return $array;
 } 
 
-function get_template_part( $slug, $name = null ) {
+function get_template_part( $slug, $args = array(),$name = null ,$return = false) {
 	$templates = array();
 	$name = (string) $name;
 	if ( '' !== $name )
@@ -289,7 +291,14 @@ function get_template_part( $slug, $name = null ) {
 
 	$templates[] = "{$slug}.php";
 
-	locate_template($templates, true, false);
+    $path = locate_template($templates, false, false);
+    ob_start( );
+	   load_template($path,$args,false);
+    $output = ob_get_clean( );
+    if($return){
+        return $output;    
+    }
+    echo $output;
 }
 
 function locate_template($template_names, $load = false, $require_once = true ) {
@@ -309,8 +318,8 @@ function locate_template($template_names, $load = false, $require_once = true ) 
 	return $located;
 }
 
-function load_template( $_template_file, $require_once = true ) {
-	 
+function load_template( $_template_file,$args = array(), $require_once = true ) {
+    extract($args);
 	if ( $require_once ) {
 		require_once( $_template_file );
 	} else {
@@ -467,3 +476,133 @@ function get_the_title($args = array()){
     $return .= $page;
     return $return;
 }
+
+
+
+
+
+
+if (! function_exists ( 'generate_tabs' )) {
+    function generate_tabs($tabs) {
+        $defaults = array (
+            'ul_id' => '',
+            'ul_class' => 'nav nav-tabs ',
+            'active_tab' => 'auto',
+            'active_li_class' => 'active',
+            'active_a_class' => '',
+            'li_class' => '',
+            'a_class' => '',
+            'tab_content_class' => '',
+            'menu_div_class' => '',
+            'tabs' => array(),
+            'contents' => array(),
+        );
+        
+        $args = array_merge($defaults,$tabs);
+        $is_only_menu = true;
+        if(!empty($args['contents'])){$is_only_menu = false;}
+        
+        $tab_args = array (
+            'id' => '',
+            'slug' => '',
+            'title' => '',
+            'link' => '',
+            'icon' => '',
+            'icon_pos' => 'before' 
+        );
+        
+        $menu_html = '<ul id="' . $args ['ul_id'] . '" class="' . $args ['ul_class'] . '" >';
+        $content_html = '';
+        $args['contents'] = array_filter($args['contents']);
+        
+        if($args['active_tab'] == 'auto'){
+            $remove_data = array_diff(array_keys($args['tabs']),array_keys($args['contents']));
+            foreach($remove_data as $name)
+                unset($args['tabs'][$name]);
+            
+            $args['active_tab'] = current(array_keys($args['tabs']));
+        } 
+        
+        
+        
+        
+        foreach ( $args ['tabs'] as $slug => $arg ) {
+            $tab_arr = array_merge ($tab_args, $arg );
+            $li_class = $args ['li_class'];
+            $a_class = $args ['a_class'];
+            $name = $tab_arr ['title'];
+            $final_text = $name;
+            $link = '#' . $slug;
+            $ex_arr = ' data-toggle="tab" ';
+            
+            if ($args ['active_tab'] == $slug) {
+                $li_class .= $args ['active_li_class'];
+                $a_class .= $args ['active_a_class'];
+            }
+            
+            if (! empty ( $tab_arr ['icon'] )) {
+                $icon = icon($tab_arr['icon']);
+                if ($tab_arr ['icon_pos'] == 'after') {
+                    $final_text = $name . ' ' . $icon;
+                } else {
+                    $final_text = $icon . ' ' . $name;
+                }
+            }
+            
+            if (! empty ( $tab_arr ['link'] )) { 
+                $link = $tab_arr ['link']; 
+                $ex_arr = '';
+            }
+            
+            $menu_html .= '<li  class="' . $li_class . '">';
+            
+            $menu_html .= '<a  href="' . $link . '" ' . $ex_arr . '>' . $final_text . '</a>';
+            $menu_html .= '</li>';
+            
+            if(!$is_only_menu){
+                if(isset($args['contents'][$slug])){
+                    $is_active_content = ($args['active_tab'] == $slug) ? 'active' : '';
+                    $content_html .= '<div class="tab-pane '.$is_active_content.'" id="'.$slug.'">'.$args['contents'][$slug].'</div>';
+                }
+            }
+        }
+        
+        $menu_html .= '</ul>';
+        
+        if(!$is_only_menu){
+            $html = '<div class="'.$args['menu_div_class'].'">'.$menu_html.'<div class="tab-content '.$args['tab_content_class'].'">'.$content_html.'</div></div>';
+        } else {
+            $html = $menu_html;
+        }
+        
+        
+        return $html;
+    }
+} 
+ 
+
+class LoremIpsum {
+    private $first = true;
+    public $words = array( 'lorem','ipsum',    'dolor','sit','amet','consectetur','adipiscing',   'elit','a','ac',       'accumsan','ad','aenean','aliquam',  'aliquet','ante','aptent','arcu',     'at','auctor','augue','bibendum', 'blandit','class','commodo','condimentum','congue',       'consequat','conubia','convallis','cras','cubilia','cum','curabitur','curae','cursus','dapibus','diam',     'dictum','dictumst','dignissim','dis',      'donec','dui','duis','egestas',  'eget','eleifend','elementum','enim',     'erat','eros','est','et',       'etiam','eu','euismod','facilisi', 'facilisis','fames','faucibus','felis',    'fermentum','feugiat','fringilla','fusce',    'gravida','habitant','habitasse','hac',      'hendrerit','himenaeos','iaculis','id',       'imperdiet','in','inceptos','integer',  'interdum','justo','lacinia','lacus',    'laoreet','lectus','leo','libero',   'ligula','litora','lobortis','luctus',   'maecenas','magna','magnis','malesuada','massa','mattis','mauris','metus',    'mi','molestie','mollis','montes',   'morbi','mus','nam','nascetur', 'natoque','nec','neque','netus',    'nibh','nisi','nisl','non',      'nostra','nulla','nullam','nunc',     'odio','orci','ornare','parturient','pellentesque','penatibus','per','pharetra', 'phasellus','placerat','platea','porta',    'porttitor','posuere','potenti','praesent', 'pretium','primis','proin','pulvinar', 'purus','quam','quis','quisque',  'rhoncus','ridiculus','risus','rutrum',   'sagittis','sapien','scelerisque','sed',      'sem','semper','senectus','sociis',   'sociosqu','sodales','sollicitudin','suscipit', 'suspendisse','taciti','tellus','tempor',   'tempus','tincidunt','torquent','tortor',   'tristique','turpis','ullamcorper','ultrices', 'ultricies','urna','ut','varius',   'vehicula','vel','velit','venenatis','vestibulum','vitae','vivamus','viverra',  'volutpat','vulputate', );
+    public function word($tags = false) { return $this->words(1, $tags); }
+    public function wordsArray($count = 1, $tags = false){ return $this->words($count, $tags, true); }
+    public function words($count = 1, $tags = false, $array = false) { $words = array(); $word_count = 0; while ($word_count < $count) { $shuffle = true; while ($shuffle) { $this->shuffle(); if (!$word_count || $words[$word_count - 1] != $this->words[0]) { $words      = array_merge($words, $this->words); $word_count = count($words); $shuffle    = false; } } } $words = array_slice($words, 0, $count); return $this->output($words, $tags, $array); }
+    public function sentence($tags = false) { return $this->sentences(1, $tags); }
+    public function sentencesArray($count = 1, $tags = false) { return $this->sentences($count, $tags, true); }
+    public function sentences($count = 1, $tags = false, $array = false) { $sentences = array(); for ($i = 0; $i < $count; $i++) { $sentences[] = $this->wordsArray($this->gauss(24.46, 5.08)); } $this->punctuate($sentences); return $this->output($sentences, $tags, $array); }
+    public function paragraph($tags = false) { return $this->paragraphs(1, $tags); }
+    public function paragraphsArray($count = 1, $tags = false) { return $this->paragraphs($count, $tags, true); }
+    public function paragraphs($count = 1, $tags = false, $array = false) { $paragraphs = array(); for ($i = 0; $i < $count; $i++) { $paragraphs[] = $this->sentences($this->gauss(5.8, 1.93)); } return $this->output($paragraphs, $tags, $array, "\n\n"); }
+    private function gauss($mean, $std_dev) { $x = mt_rand() / mt_getrandmax(); $y = mt_rand() / mt_getrandmax(); $z = sqrt(-2 * log($x)) * cos(2 * pi() * $y); return $z * $std_dev + $mean; }
+    private function shuffle() { if ($this->first) { $this->first = array_slice($this->words, 0, 8); $this->words = array_slice($this->words, 8); shuffle($this->words); $this->words = $this->first + $this->words; $this->first = false; } else { shuffle($this->words); } }
+    private function punctuate(&$sentences) { foreach ($sentences as $key => $sentence) { $words = count($sentence); if ($words > 4) { $mean    = log($words, 6); $std_dev = $mean / 6; $commas  = round($this->gauss($mean, $std_dev)); for ($i = 1; $i <= $commas; $i++) { $word = round($i * $words / ($commas + 1)); if ($word < ($words - 1) && $word > 0) { $sentence[$word] .= ','; } } } $sentences[$key] = ucfirst(implode(' ', $sentence) . '.'); } }
+    private function output($strings, $tags, $array, $delimiter = ' ') { if ($tags) { if (!is_array($tags)) { $tags = array($tags); } else { $tags = array_reverse($tags); } foreach ($strings as $key => $string) { foreach ($tags as $tag) { if ($tag[0] == '<') { $string = str_replace('$1', $string, $tag); } else { $string = sprintf('<%1$s>%2$s</%1$s>', $tag, $string); } $strings[$key] = $string; } } } if (!$array) { $strings = implode($delimiter, $strings); } return $strings; }
+}
+
+function text_word($count = 1,$tag = false){ $lipsum = new LoremIpsum; return $lipsum->words($count,$tag);}
+function text_paragraph($count = 1,$tag = false){ $lipsum = new LoremIpsum; return $lipsum->paragraphs($count,$tag); }
+function text_sentences($count = 1,$tag = false){ $lipsum = new LoremIpsum; return $lipsum->sentences($count,$tag); }
+
+function _text_word($count = 1,$tag = false){ $lipsum = new LoremIpsum; echo $lipsum->words($count,$tag);}
+function _text_paragraph($count = 1,$tag = false){ $lipsum = new LoremIpsum; echo $lipsum->paragraphs($count,$tag); }
+function _text_sentences($count = 1,$tag = false){ $lipsum = new LoremIpsum; echo $lipsum->sentences($count,$tag); }
