@@ -1,7 +1,7 @@
 <?php
 define("ABS_PATH",__DIR__.'/');
 include("parts/bulk-images.php");
-include("parts/texts.php"); 
+include("custom-functions.php");
 
 function the_title($args = array()){
     echo get_the_title($args);
@@ -141,6 +141,201 @@ function generate_site_menu_html($menus,$is_child = false){
     $html_menu .= '</ul>';  
     return $html_menu;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function _megamenu_generate_site_menu_html($menus,$is_child = false){
+    $html_menu = '';
+    
+    if($is_child === false){
+        $html_menu = '<ul class="nav navbar-nav underline">';    
+    } else if($is_child === true) {
+        $html_menu = '<ul class="dropdown-menu">';
+    }
+    
+    
+    foreach($menus as $slug => $menu){
+        $ext = defined("GENERATE_HTML") ? '.html' : '.php';
+        $link = file_exists(ABS_PATH.$slug.'.php') ? $slug.$ext : '#';
+        $id = isset($menu['id']) ? $menu['id'] : '#';
+        $name = isset($menu['title']) ? $menu['title'] : '';
+        $title = isset($menu['title']) ? $menu['title'] : '';
+        $has_child = false;
+        $li_class = '';
+        if(defined("GENERATE_HTML")){
+            global $current_file;
+            $active_pages = str_replace(array(".html",'.php'),array('',''),basename($current_file));
+        } else {
+            $active_pages = str_replace(array(".html",'.php'),array('',''),get_active_page());
+        }
+        
+        
+        $childs = '';
+        
+        
+        if($active_pages == $slug){ 
+            $li_class .= ' active '; 
+        } else {
+            global $current_active_page,$current_active_page_link;
+            if($current_active_page == $slug){ 
+                $li_class .= ' active '; 
+            
+                if(!empty($current_active_page_link)){
+                    $l = str_replace(array(".html",'.php'),array('',''),basename($current_active_page_link));
+                    $link = file_exists(ABS_PATH.$l.'.php') ? $l.$ext : "#";
+                }
+            }
+        }
+        
+        if(isset($menu['is_megamenu']) && $menu['is_megamenu'] === true){
+            $childs = '<div class="megamenu-panel">';
+            $childs .= '<div class="megamenu-lists">';
+            
+            foreach($menu['childs'] as $child){
+                if(isset($child['html_before'])){
+                    $childs .= $child['html_before'];
+                }
+                
+                if(!isset($child['html'])){
+                    $mgul_a = array('class' => 'megamenu-list list-col-4');
+                    if(isset($child['ul_attrs'])){ $mgul_a = array_merge($mgul_a,$child['ul_attrs']); }
+                    $mgul_a = _stringify_attributes($mgul_a);
+
+                    
+                    $childs .= '<ul '.$mgul_a.'>';
+                    $childs .= _megamenu_generate_site_menu_html($child['menu'],'megamenu');
+                    $childs .= '</ul>';
+                } else {
+                    $childs .= $child['html'];
+                }
+                
+                if(isset($child['html_after'])){
+                    $childs .= $child['html_after'];
+                }
+                if(isset($child['menu'][$active_pages])){
+                    $li_class .= ' active ';
+                }
+            }
+            
+            
+            $childs .= '</div>';
+            $childs .= '</div>';
+
+        } else if(isset($menu['childs'])){
+            if(!empty($menu['childs'])){
+                $has_child = true;
+                $li_class .= ' dropdown ';
+                $name .= ' <span class="caret"></span>';
+                $childs = generate_site_menu_html($menu['childs'],true);
+                
+                if(isset($menu['childs'][$active_pages])){
+                    $li_class .= ' active ';
+                }
+            }
+        }
+        
+        
+        
+        $a_attrs = array( 'href' => $link, 'title' => $title, 'id' => $id, );        
+        if(isset($menu['a_attrs'])){ $a_attrs = array_merge($a_attrs,$menu['a_attrs']); }
+        $a_attrs = _stringify_attributes($a_attrs);
+        
+        
+        $li_attrs = array( 'class' => $li_class, );        
+        if(isset($menu['li_attrs'])){ $li_attrs = array_merge($li_attrs,$menu['li_attrs']); }
+        $li_attrs = _stringify_attributes($li_attrs);
+        unset($menu['title']);
+        $html_menu .= '<li '.$li_attrs.'> <a '.$a_attrs.'>'.$name.'</a>'.$childs.'</li>';
+    }
+    
+    
+    if($is_child === false){
+        $html_menu .= '</ul>';   
+    } else if($is_child === true) {
+        $html_menu .= '</ul>';  
+    }
+    return $html_menu;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 function assets_url($url,$force = false){
     if(defined("GENERATE_HTML")){
